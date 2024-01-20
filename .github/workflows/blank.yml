@@ -1,1 +1,108 @@
-sudo apt update && sudo apt upgrade
+#!/bin/bash
+
+# Cores para melhorar a apresentação
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# Função para imprimir uma linha decorativa
+print_line() {
+    echo -e "${WHITE}----------------------------------------${NC}"
+}
+
+# Função para exibir mensagem colorida
+print_message() {
+    local color=$1
+    local message=$2
+    echo -e "${color}${message}${NC}"
+}
+
+# Função para limpar logs em um diretório
+clean_logs() {
+    local log_dir=$1
+    sudo find $log_dir -type f -delete
+}
+
+echo -e "${CYAN}Iniciando Manutenção VPS...${NC}"
+
+# Função para atualizar a VPS
+update_vps() {
+    print_message "${CYAN}" "\nAtualizando a VPS..."
+    sudo apt update && sudo apt upgrade -y
+}
+
+# Função para verificar o uso do disco
+check_disk_usage() {
+    print_line
+    print_message "${CYAN}" "Verificando uso do disco:"
+    df -h
+}
+
+# Função para verificar a conectividade de rede
+check_network_connectivity() {
+    print_line
+    print_message "${CYAN}" "Verificando conectividade de rede:"
+    ping -c 4 google.com
+}
+
+# Função para corrigir possível erro de bloqueio do dpkg frontend
+fix_dpkg_lock_error() {
+    print_line
+    print_message "${CYAN}" "Corrigindo possível erro de bloqueio do dpkg frontend:"
+    sudo fuser -v /var/lib/dpkg/lock-frontend
+}
+
+# Função para limpar logs específicos
+clean_specific_logs() {
+    local log_dir=$1
+    print_line
+    print_message "${CYAN}" "Limpando logs em ${log_dir}:"
+    clean_logs $log_dir
+}
+
+# Função para limpar cache do apt
+clean_apt_cache() {
+    print_line
+    print_message "${CYAN}" "Limpando cache do apt:"
+    sudo apt clean
+}
+
+# Função para remover pacotes desnecessários
+remove_unused_packages() {
+    print_line
+    print_message "${CYAN}" "Removendo pacotes desnecessários:"
+    sudo apt autoremove --purge
+}
+
+# Função para realizar manutenção geral
+perform_general_maintenance() {
+    update_vps
+    check_disk_usage
+    check_network_connectivity
+    fix_dpkg_lock_error
+    clean_specific_logs "/var/log"  # Especifica o diretório de logs
+    clean_apt_cache
+    remove_unused_packages
+}
+
+# Calcula a memória disponível antes e após a manutenção
+calculate_memory_freed() {
+    local initial_mem=$(free -m | awk 'NR==2{print $7}')
+    print_line
+    print_message "${CYAN}" "Memória disponível antes da manutenção: ${initial_mem}MB"
+    
+    perform_general_maintenance  # Executa a manutenção
+    
+    local final_mem=$(free -m | awk 'NR==2{print $7}')
+    local freed_mem=$((initial_mem - final_mem))
+    print_message "${CYAN}" "Memória liberada com a manutenção: ${freed_mem}MB"
+}
+
+# Executa a manutenção geral e exibe resultado
+calculate_memory_freed
+
+# Linha final decorativa
+print_line
+
+print_message "${GREEN}" "Manutenção concluída."
